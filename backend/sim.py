@@ -18,6 +18,7 @@ from models_db import (
     append_audit,
     get_conn,
 )
+from anpr import random_demo_plate, parse_ocr_text, DEFAULT_WATCHLIST, PlateCountry
 
 class ConnectionManager:
     def __init__(self) -> None:
@@ -90,6 +91,13 @@ ALERT_TEMPLATES = [
         "description": "Same subject linked across adjacent cameras – priority elevated.",
         "score_range": (0.75, 0.94),
     },
+    {
+        "type": AlertType.ANPR,
+        "severity": AlertSeverity.HIGH,
+        "title": "ANPR – Number Plate Detected",
+        "description": "Multi-country plate read (India / Nepal / Bhutan).",
+        "score_range": (0.70, 0.96),
+    },
 ]
 
 
@@ -148,25 +156,55 @@ async def generate_simulated_alert() -> Optional[Alert]:
     cam = random.choice(cams)
     tmpl = random.choice(ALERT_TEMPLATES)
     score = round(random.uniform(*tmpl["score_range"]), 3)
+    meta = {
+        "dwell_sec": random.randint(30, 420) if tmpl["type"] in (AlertType.LOITERING, AlertType.ZONE_DWELL) else None,
+        "direction_deg": random.randint(0, 359) if tmpl["type"] == AlertType.DIRECTION else None,
+        "track_id": f"trk-{random.randint(1000, 9999)}",
+        "model": "YOLOv8n+ByteTrack (sim)",
+        "offline": True,
+    }
+    title = tmpl["title"]
+    description = tmpl["description"]
+    severity = tmpl["severity"]
+
+    if tmpl["type"] == AlertType.ANPR:
+        plate = random_demo_plate()
+        plate = parse_ocr_text(plate.raw_text, DEFAULT_WATCHLIST)
+        country_name = {"IN": "India", "NP": "Nepal", "BT": "Bhutan"}.get(plate.country, "Unknown")
+        title = f"ANPR – {country_name} Plate"
+        description = (
+            f"Plate {plate.normalized} classified as {country_name} "
+            f"({plate.country}). Format: {plate.format_hint}."
+        )
+        if plate.watchlist_hit:
+            severity = AlertSeverity.CRITICAL
+            title = f"ANPR WATCHLIST – {country_name} {plate.normalized}"
+            description = (
+                f"Watchlist hit: {plate.normalized} ({country_name}). "
+                f"Cross-border priority. Region hint: {plate.region_hint or '—'}."
+            )
+        meta.update({
+            "anpr": plate.to_dict(),
+            "plate": plate.normalized,
+            "plate_country": plate.country,
+            "plate_country_name": country_name,
+            "model": "ANPR-MultiCountry (IN/NP/BT) + YOLOv8n (sim)",
+        })
+        score = round(plate.confidence, 3)
+
     alert = Alert(
         id=str(uuid.uuid4()),
         type=tmpl["type"],
-        severity=tmpl["severity"],
-        title=tmpl["title"],
-        description=tmpl["description"],
+        severity=severity,
+        title=title,
+        description=description,
         camera_id=cam["id"],
         bop_id=cam["bop_id"],
         score=score,
         timestamp=datetime.now(timezone.utc).isoformat(),
         lat=cam["lat"] + random.uniform(-0.002, 0.002),
         lng=cam["lng"] + random.uniform(-0.002, 0.002),
-        metadata={
-            "dwell_sec": random.randint(30, 420) if tmpl["type"] in (AlertType.LOITERING, AlertType.ZONE_DWELL) else None,
-            "direction_deg": random.randint(0, 359) if tmpl["type"] == AlertType.DIRECTION else None,
-            "track_id": f"trk-{random.randint(1000, 9999)}",
-            "model": "YOLOv8n+ByteTrack (sim)",
-            "offline": True,
-        },
+        metadata=meta,
     )
     save_alert(alert)
     return alert
