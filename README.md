@@ -43,34 +43,36 @@ Existing CCTV (simulated cameras)
         → Dashboard (Leaflet map, live alerts, audit log)
 ```
 
-## Tech stack
-
-| Layer | Stack |
-|-------|--------|
-| Edge (demo) | Laptop simulator · Deploy target: Mini-PC N100 / Jetson / Coral |
-| Video path | RTSP / ONVIF / Analog→IP |
-| AI (production path) | YOLOv8 · ByteTrack · PaddleOCR · watchlist-only face match |
-| Backend | FastAPI · SQLite hash-chain · WebSocket · MQTT-ready design |
-| Dashboard | Leaflet · Tailwind · human review workflow |
-
-## Privacy
-
-- No default biometric identification of general civilians  
-- Watchlist-only face match (production design)  
-- Human verification before action  
-- Full audit trail on every review decision  
-
 ## Project layout
 
 ```
 backend/
-  main.py              # API + edge simulator + hash-chain
+  main.py           # FastAPI app + routes
+  models_db.py      # Models, SQLite, hash-chain, seed data
+  sim.py            # WebSocket hub + edge alert simulator
   requirements.txt
-  static/index.html    # Ops dashboard
+  static/index.html # Ops dashboard
 docs/
-  create_pitch.js      # Pitch deck generator (optional)
+  create_pitch.js   # Optional pitch deck generator
 start.sh
 ```
+
+## Tech stack
+
+| Layer | Stack |
+|-------|--------|
+| Edge (demo) | Laptop simulator · Deploy: Mini-PC N100 / Jetson / Coral |
+| Video path | RTSP / ONVIF / Analog→IP |
+| AI (production path) | YOLOv8 · ByteTrack · PaddleOCR · watchlist-only face |
+| Backend | FastAPI · SQLite hash-chain · WebSocket |
+| Dashboard | Leaflet · Tailwind · human review |
+
+## Privacy
+
+- No default biometric ID of general civilians  
+- Watchlist-only face match (production design)  
+- Human verification before action  
+- Full audit trail on every review decision  
 
 ## One-line (judge)
 
