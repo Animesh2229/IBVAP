@@ -31,6 +31,7 @@ class AlertType(str, Enum):
     REPEATED_CROSSING = "repeated_crossing"
     ZONE_DWELL = "zone_dwell"
     MULTI_CAMERA = "multi_camera"
+    ANPR = "anpr"
     SYSTEM = "system"
 
 
