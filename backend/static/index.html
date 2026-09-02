@@ -4,84 +4,217 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>IBVAP – Intelligent Border Video Analytics</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-html,body{height:100%;margin:0;background:#020617;color:#e2e8f0;font-family:system-ui,sans-serif}
-#map{height:100%;width:100%;background:#0f172a}
-.leaflet-container{background:#0f172a}
-.sev-low{background:rgba(14,165,233,.15);color:#7dd3fc}
-.sev-medium{background:rgba(245,158,11,.15);color:#fcd34d}
-.sev-high{background:rgba(249,115,22,.15);color:#fdba74}
-.sev-critical{background:rgba(239,68,68,.15);color:#fca5a5}
-@keyframes pulse{50%{opacity:.55}}
-.pulse{animation:pulse 1.4s ease-in-out infinite}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#0b1220;color:#e2e8f0;height:100vh;display:flex;flex-direction:column}
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #1e293b;background:#0f172a;gap:8px;flex-wrap:wrap}
+header h1{font-size:15px;font-weight:700;letter-spacing:.02em}
+header .sub{font-size:11px;color:#94a3b8}
+.badge{font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid #334155}
+.badge.on{background:#064e3b;color:#6ee7b7;border-color:#059669}
+.badge.off{background:#3f1d1d;color:#fca5a5;border-color:#991b1b}
+button{cursor:pointer;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;color:#fff}
+.btn-cyan{background:#0891b2}.btn-cyan:hover{background:#0e7490}
+.btn-green{background:#047857}.btn-green:hover{background:#065f46}
+.btn-sky{background:#0369a1}.btn-sky:hover{background:#075985}
+.btn-amber{background:#b45309}.btn-amber:hover{background:#92400e}
+.btn-sm{padding:4px 8px;font-size:11px;border-radius:6px;background:#1e293b;color:#cbd5e1;border:1px solid #334155}
+.btn-sm.ok{background:#064e3b;color:#6ee7b7}
+.btn-sm.bad{background:#7f1d1d;color:#fca5a5}
+.stats{display:flex;gap:12px;padding:8px 16px;border-bottom:1px solid #1e293b;flex-wrap:wrap;font-size:12px;color:#94a3b8;background:#0f172a}
+.stats b{color:#e2e8f0}
+.main{flex:1;display:grid;grid-template-columns:1.2fr 1fr;min-height:0}
+@media(max-width:900px){.main{grid-template-columns:1fr}}
+.panel{overflow:auto;padding:12px;border-right:1px solid #1e293b}
+.panel:last-child{border-right:none}
+h2{font-size:13px;color:#94a3b8;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em}
+.bop{background:#111827;border:1px solid #1e293b;border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.bop .name{font-weight:600;font-size:13px}
+.bop .meta{font-size:11px;color:#94a3b8;margin-top:2px}
+.alert{background:#111827;border:1px solid #1e293b;border-left:3px solid #64748b;border-radius:8px;padding:10px;margin-bottom:8px}
+.alert.high,.alert.critical{border-left-color:#ef4444}
+.alert.medium{border-left-color:#f59e0b}
+.alert.low{border-left-color:#22c55e}
+.alert .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.alert .title{font-size:13px;font-weight:600}
+.alert .sev{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:#1e293b}
+.alert .desc{font-size:11px;color:#94a3b8;margin-top:4px}
+.alert .row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-size:10px;color:#64748b}
+.tag{padding:2px 6px;border-radius:4px;background:#1e293b;color:#cbd5e1}
+.tag.IN{background:#064e3b;color:#6ee7b7}
+.tag.NP{background:#0c4a6e;color:#7dd3fc}
+.tag.BT{background:#713f12;color:#fde68a}
+.log{font-family:ui-monospace,monospace;font-size:10px;color:#64748b;padding:6px 0;border-bottom:1px solid #1e293b}
+.err{color:#fca5a5;font-size:12px;padding:8px;background:#450a0a;border-radius:8px;margin-bottom:8px}
+.okmsg{color:#6ee7b7;font-size:12px}
+footer{padding:6px 16px;font-size:10px;color:#475569;border-top:1px solid #1e293b}
 </style>
 </head>
-<body class="h-full flex flex-col">
-<header class="flex flex-wrap items-center gap-3 border-b border-slate-800 px-4 py-3">
+<body>
+<header>
   <div>
-    <div class="text-sm font-bold text-white">IBVAP</div>
-    <div class="text-[11px] text-slate-400">Intelligent Border Video Analytics · SSB Force Multiplier</div>
+    <h1>IBVAP</h1>
+    <div class="sub">Intelligent Border Video Analytics · SSB Force Multiplier</div>
   </div>
-  <div class="ml-auto flex gap-2 items-center">
-    <span id="liveBadge" class="rounded-full border border-slate-700 px-2.5 py-1 text-xs text-slate-400">● Offline</span>
-    <button id="btnTrigger" class="rounded-lg bg-cyan-600 hover:bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-white">Simulate Detection</button>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span id="conn" class="badge off">Offline</span>
+    <button class="btn-cyan" id="btnTrigger" type="button">Simulate Detection</button>
+    <button class="btn-green" id="btnAnprIN" type="button">IN Plate</button>
+    <button class="btn-sky" id="btnAnprNP" type="button">NP Plate</button>
+    <button class="btn-amber" id="btnAnprBT" type="button">BT Plate</button>
   </div>
 </header>
-<div id="stats" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 border-b border-slate-800 px-4 py-3"></div>
-<main class="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-12">
-  <section class="relative min-h-[280px] border-r border-slate-800 p-3 lg:col-span-7 xl:col-span-8">
-    <div class="h-full overflow-hidden rounded-xl border border-slate-800"><div id="map"></div></div>
-  </section>
-  <section class="flex min-h-0 flex-col lg:col-span-5 xl:col-span-4">
-    <div class="min-h-0 flex-1 border-b border-slate-800 flex flex-col" style="max-height:55%">
-      <div class="flex justify-between border-b border-slate-800 px-4 py-3">
-        <h2 class="text-sm font-semibold">Live Alerts</h2>
-        <span id="openCount" class="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">0 open</span>
-      </div>
-      <div id="alertList" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
-    </div>
-    <div class="min-h-0 flex-1 flex flex-col">
-      <div class="flex justify-between border-b border-slate-800 px-4 py-3">
-        <h2 class="text-sm font-semibold">Tamper-Evident Log</h2>
-        <span id="chainBadge" class="rounded-full bg-emerald-500/15 text-emerald-300 px-2 py-0.5 text-xs">Chain OK</span>
-      </div>
-      <div id="auditList" class="flex-1 overflow-y-auto p-3 font-mono text-[11px] space-y-2"></div>
-    </div>
-  </section>
-</main>
-<footer class="border-t border-slate-800 px-4 py-2 text-[11px] text-slate-500">AI assists · Humans decide · Nation secured · Privacy-by-design</footer>
+<div class="stats" id="stats">
+  <span>CAMERAS <b>—</b></span>
+  <span>BOPS <b>—</b></span>
+  <span>OPEN ALERTS <b>—</b></span>
+  <span>AUDIT <b id="auditStat">—</b></span>
+</div>
+<div class="main">
+  <div class="panel">
+    <h2>BOP locations (offline map mode)</h2>
+    <div id="bops" class="okmsg">Loading…</div>
+    <h2 style="margin-top:16px">Tamper-Evident Log</h2>
+    <div id="audit">—</div>
+  </div>
+  <div class="panel">
+    <h2>Live Alerts <span id="openCount" style="color:#64748b;font-weight:400"></span></h2>
+    <div id="alerts"><div class="okmsg">Waiting for data…</div></div>
+  </div>
+</div>
+<footer>AI assists · Humans decide · Nation secured · Privacy-by-design · No external CDN (offline-friendly)</footer>
 <script>
-const API='/api',SEV={low:'#38bdf8',medium:'#fbbf24',high:'#f97316',critical:'#ef4444'};
-const TYPE={virtual_fence:'Virtual Fence',loitering:'Loitering',direction:'Direction',repeated_crossing:'Repeated Cross',zone_dwell:'Zone Dwell',multi_camera:'Multi-Cam'};
-let map,alertMarkers={},selectedId=null,alerts=[],cameras=[],bops=[],fences=[];
-function initMap(){map=L.map('map').setView([27.2,87.5],7);L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'OSM'}).addTo(map)}
-function renderStats(s){if(!s)return;const items=[['Open Alerts',s.open_alerts,'text-orange-300'],['Cameras',s.cameras_online+'/'+s.cameras_total,'text-emerald-300'],['BOPs',s.bops_covered,'text-sky-300'],['Response',s.avg_response_min+' min','text-violet-300'],['False Alarm',s.false_alarm_rate+'%','text-amber-300'],['Audit',s.audit_chain_valid?'Valid':'Broken',s.audit_chain_valid?'text-emerald-300':'text-red-300']];
-document.getElementById('stats').innerHTML=items.map(i=>'<div class="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-2.5"><div class="text-[11px] uppercase text-slate-500">'+i[0]+'</div><div class="text-sm font-semibold '+i[2]+'">'+i[1]+'</div></div>').join('')}
-function renderAlerts(){const open=alerts.filter(a=>a.status==='open').length;document.getElementById('openCount').textContent=open+' open';
-const el=document.getElementById('alertList');if(!alerts.length){el.innerHTML='<p class="text-center text-sm text-slate-500 py-8">Waiting for detections…</p>';return}
-el.innerHTML=alerts.map(a=>{const sel=selectedId===a.id;const pulse=a.status==='open'&&a.severity==='critical'?'pulse':'';
-let actions='';if(a.status==='open'&&sel){actions='<div class="flex gap-2 pt-1"><button onclick="review(\''+a.id+'\',\'approve\')" class="flex-1 rounded-lg bg-emerald-600/20 px-2 py-1.5 text-xs text-emerald-300">Verify</button><button onclick="review(\''+a.id+'\',\'discard\')" class="flex-1 rounded-lg bg-slate-700/40 px-2 py-1.5 text-xs">Discard</button><button onclick="review(\''+a.id+'\',\'escalate\')" class="flex-1 rounded-lg bg-orange-600/20 px-2 py-1.5 text-xs text-orange-300">Escalate</button></div>'}
-else if(a.status!=='open'){actions='<div class="text-[11px] text-slate-500">Status: '+a.status+'</div>'}
-return '<button onclick="selectAlert(\''+a.id+'\')" class="w-full text-left rounded-xl border p-3 '+(sel?'border-cyan-500/50 bg-slate-800/80':'border-slate-800 bg-slate-900/60')+' '+pulse+'"><div class="flex justify-between gap-2 mb-1"><span class="text-sm font-medium">'+a.title+'</span><span class="rounded-md px-1.5 py-0.5 text-[10px] uppercase sev-'+a.severity+'">'+a.severity+'</span></div><p class="text-xs text-slate-400 mb-2">'+a.description+'</p><div class="flex flex-wrap gap-2 text-[11px] text-slate-500"><span class="rounded bg-slate-800 px-1.5">'+((TYPE[a.type])||a.type)+'</span><span>Score '+Math.round(a.score*100)+'%</span><span class="ml-auto">'+new Date(a.timestamp).toLocaleTimeString()+'</span></div>'+actions+'</button>'}).join('')}
-function renderAudit(entries,valid){const b=document.getElementById('chainBadge');b.textContent=valid?'Chain OK':'Broken';b.className='rounded-full px-2 py-0.5 text-xs '+(valid?'bg-emerald-500/15 text-emerald-300':'bg-red-500/15 text-red-300');
-document.getElementById('auditList').innerHTML=(entries||[]).map(e=>'<div class="rounded-lg border border-slate-800 bg-slate-900/50 p-2.5"><div class="flex justify-between mb-1"><span class="text-violet-300">#'+e.id+' · '+e.event_type+'</span><span class="text-slate-500">'+new Date(e.timestamp).toLocaleTimeString()+'</span></div><div class="truncate text-slate-400">hash: <span class="text-cyan-400/80">'+e.hash.slice(0,20)+'…</span></div></div>').join('')||'<p class="text-center text-slate-500 py-6">No entries</p>'}
-function drawStatic(){fences.forEach(f=>{L.polygon(f.polygon,{color:SEV[f.severity]||'#f97316',fillColor:SEV[f.severity]||'#f97316',fillOpacity:.18,weight:2,dashArray:'6 4'}).bindPopup('<b>'+f.name+'</b><br>Virtual Fence').addTo(map)});
-bops.forEach(b=>{const icon=L.divIcon({className:'',html:'<div style="background:#0ea5e9;border:2px solid #e0f2fe;width:14px;height:14px;border-radius:50%"></div>',iconSize:[14,14],iconAnchor:[7,7]});L.marker([b.lat,b.lng],{icon}).bindPopup('<b>'+b.name+'</b><br>'+b.sector).addTo(map)});
-cameras.forEach(c=>{const col=c.status==='online'?'#22c55e':c.status==='degraded'?'#eab308':'#64748b';L.circleMarker([c.lat,c.lng],{radius:5,color:col,fillColor:col,fillOpacity:.9}).bindPopup(c.name+' · '+c.protocol).addTo(map)})}
-function refreshMarkers(){Object.keys(alertMarkers).forEach(k=>map.removeLayer(alertMarkers[k]));alertMarkers={};
-alerts.filter(a=>a.status==='open').slice(0,30).forEach(a=>{const r=selectedId===a.id?12:8;const m=L.circleMarker([a.lat,a.lng],{radius:r,color:SEV[a.severity],fillColor:SEV[a.severity],fillOpacity:.7,weight:selectedId===a.id?3:1}).on('click',()=>selectAlert(a.id)).addTo(map);alertMarkers[a.id]=m})}
-function selectAlert(id){selectedId=id;renderAlerts();refreshMarkers()}
-async function review(id,action){await fetch(API+'/alerts/'+id+'/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,note:''})});await loadAll()}
-async function loadAll(){const [s,a,au,b,c,f]=await Promise.all([fetch(API+'/stats').then(r=>r.json()),fetch(API+'/alerts?limit=60').then(r=>r.json()),fetch(API+'/audit?limit=40').then(r=>r.json()),fetch(API+'/bops').then(r=>r.json()),fetch(API+'/cameras').then(r=>r.json()),fetch(API+'/fences').then(r=>r.json())]);const first=!bops.length;alerts=a;bops=b;cameras=c;fences=f;renderStats(s);renderAlerts();renderAudit(au.entries,au.chain_valid);if(first)drawStatic();refreshMarkers()}
-function connectWS(){const proto=location.protocol==='https:'?'wss':'ws';const ws=new WebSocket(proto+'://'+location.host+'/ws/alerts');const badge=document.getElementById('liveBadge');
-ws.onopen=()=>{badge.textContent='● Live Edge Feed';badge.className='rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-300'};
-ws.onclose=()=>{badge.textContent='● Reconnecting…';badge.className='rounded-full border border-slate-700 px-2.5 py-1 text-xs text-slate-400';setTimeout(connectWS,3000)};
-ws.onmessage=ev=>{try{const msg=JSON.parse(ev.data);if(msg.event==='alert'&&msg.data){alerts=[msg.data,...alerts].slice(0,80);if(!selectedId)selectedId=msg.data.id;renderAlerts();refreshMarkers();fetch(API+'/stats').then(r=>r.json()).then(renderStats);fetch(API+'/audit?limit=40').then(r=>r.json()).then(au=>renderAudit(au.entries,au.chain_valid))}if(msg.event==='alert_updated')loadAll()}catch(e){}}}
-document.getElementById('btnTrigger').onclick=async()=>{const btn=document.getElementById('btnTrigger');btn.disabled=true;try{await fetch(API+'/simulator/trigger',{method:'POST'});await loadAll()}finally{btn.disabled=false}};
-initMap();loadAll().catch(console.error);connectWS();setInterval(()=>loadAll().catch(()=>{}),25000);
+const API = '';
+const TYPE = {
+  virtual_fence:'Virtual Fence', loitering:'Loitering', direction:'Direction',
+  repeated_crossing:'Repeated Cross', zone_dwell:'Zone Dwell', multi_camera:'Multi-Cam', anpr:'ANPR Plate'
+};
+function $(id){ return document.getElementById(id); }
+async function jget(path){
+  const r = await fetch(API + path);
+  if(!r.ok) throw new Error(path + ' ' + r.status);
+  return r.json();
+}
+function setConn(on){
+  const el = $('conn');
+  el.textContent = on ? 'Live Edge Feed' : 'Offline';
+  el.className = 'badge ' + (on ? 'on' : 'off');
+}
+function renderBops(list){
+  if(!list || !list.length){ $('bops').innerHTML = '<div class="err">No BOPs</div>'; return; }
+  $('bops').innerHTML = list.map(b =>
+    '<div class="bop"><div class="name">'+b.name+'</div><div class="meta">'+
+    (b.sector||'')+' · cameras: '+(b.cameras||'—')+
+    ' · '+b.lat.toFixed(3)+', '+b.lng.toFixed(3)+'</div></div>'
+  ).join('');
+}
+function renderAlerts(rows){
+  if(!rows || !rows.length){
+    $('alerts').innerHTML = '<div class="okmsg">No alerts yet — press Simulate Detection</div>';
+    $('openCount').textContent = '';
+    return;
+  }
+  const open = rows.filter(a => a.status === 'open').length;
+  $('openCount').textContent = '('+open+' open)';
+  $('alerts').innerHTML = rows.slice(0,40).map(a => {
+    const meta = a.metadata || {};
+    const plate = meta.plate
+      ? '<span class="tag '+(meta.plate_country||'')+'">'+(meta.plate_country_name||meta.plate_country||'')+' '+meta.plate+'</span>'
+      : '';
+    const btns = a.status === 'open'
+      ? '<button class="btn-sm ok" data-id="'+a.id+'" data-act="approve">Verify</button>'+
+        '<button class="btn-sm bad" data-id="'+a.id+'" data-act="discard">Discard</button>'
+      : '<span class="tag">'+a.status+'</span>';
+    return '<div class="alert '+(a.severity||'')+'"><div class="top"><div class="title">'+
+      (a.title||'')+'</div><span class="sev">'+(a.severity||'').toUpperCase()+'</span></div>'+
+      '<div class="desc">'+(a.description||'')+'</div>'+
+      '<div class="row"><span class="tag">'+(TYPE[a.type]||a.type)+'</span>'+plate+
+      '<span class="tag">Score '+Math.round((a.score||0)*100)+'%</span>'+
+      '<span class="tag">'+(a.bop_id||'')+'</span></div>'+
+      '<div class="row" style="margin-top:8px">'+btns+'</div></div>';
+  }).join('');
+  $('alerts').querySelectorAll('button[data-act]').forEach(btn => {
+    btn.onclick = async () => {
+      try {
+        await fetch(API+'/api/alerts/'+btn.dataset.id+'/review', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({action: btn.dataset.act, note: 'demo'})
+        });
+        await loadAll();
+      } catch(e){ console.error(e); }
+    };
+  });
+}
+function renderAudit(data){
+  const valid = data && data.chain_valid;
+  $('auditStat').textContent = valid ? 'Valid' : 'CHECK';
+  const entries = (data && data.entries) || [];
+  if(!entries.length){ $('audit').innerHTML = '<div class="log">No entries</div>'; return; }
+  $('audit').innerHTML = entries.slice(0,15).map(e =>
+    '<div class="log">#'+e.id+' · '+e.event_type+' · '+(e.hash||'').slice(0,16)+'…</div>'
+  ).join('');
+}
+async function loadAll(){
+  try {
+    const [health, bops, alerts, audit, stats] = await Promise.all([
+      jget('/api/health'),
+      jget('/api/bops'),
+      jget('/api/alerts?limit=40'),
+      jget('/api/audit?limit=20'),
+      jget('/api/stats').catch(()=>null)
+    ]);
+    renderBops(bops);
+    renderAlerts(alerts);
+    renderAudit(audit);
+    if(stats){
+      $('stats').innerHTML =
+        '<span>CAMERAS <b>'+stats.cameras_online+'/'+stats.cameras_total+'</b></span>'+
+        '<span>BOPS <b>'+stats.bops_covered+'</b></span>'+
+        '<span>OPEN <b>'+stats.open_alerts+'</b></span>'+
+        '<span>AUDIT <b>'+(stats.audit_chain_valid?'Valid':'CHECK')+'</b></span>';
+    }
+  } catch(e){
+    console.error(e);
+    $('alerts').innerHTML = '<div class="err">API error: '+e.message+'. Is uvicorn running?</div>';
+  }
+}
+function connectWS(){
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(proto + '//' + location.host + '/ws/alerts');
+  ws.onopen = () => setConn(true);
+  ws.onclose = () => { setConn(false); setTimeout(connectWS, 3000); };
+  ws.onerror = () => setConn(false);
+  ws.onmessage = async (ev) => {
+    try {
+      const msg = JSON.parse(ev.data);
+      if(msg.event === 'alert' || msg.event === 'alert_updated') await loadAll();
+    } catch(e){}
+  };
+}
+$('btnTrigger').onclick = async () => {
+  try {
+    await fetch(API+'/api/simulator/trigger', {method:'POST'});
+    await loadAll();
+  } catch(e){ alert('Trigger failed: '+e.message); }
+};
+async function triggerAnpr(country){
+  try {
+    await fetch(API+'/api/simulator/trigger_anpr?country='+country, {method:'POST'});
+    await loadAll();
+  } catch(e){
+    try {
+      await fetch(API+'/api/simulator/trigger', {method:'POST'});
+      await loadAll();
+    } catch(e2){ alert('ANPR/Simulate failed'); }
+  }
+}
+$('btnAnprIN').onclick = () => triggerAnpr('IN');
+$('btnAnprNP').onclick = () => triggerAnpr('NP');
+$('btnAnprBT').onclick = () => triggerAnpr('BT');
+loadAll();
+connectWS();
+setInterval(loadAll, 8000);
 </script>
 </body>
 </html>
