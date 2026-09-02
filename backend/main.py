@@ -15,8 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-import core as core_mod
-from core import (
+import sim as sim_mod
+from models_db import (
     GENESIS_HASH,
     SAMPLE_BOPS,
     BOP,
@@ -24,21 +24,20 @@ from core import (
     DashboardStats,
     HumanReviewAction,
     append_audit,
-    generate_simulated_alert,
     get_conn,
     init_db,
+    seed_if_empty,
+    verify_chain,
+)
+from sim import (
+    generate_simulated_alert,
     list_cameras,
     manager,
-    seed_if_empty,
     simulator_loop,
-    verify_chain,
 )
 
 simulator_task = None
 
-# ---------------------------------------------------------------------------
-# App lifecycle
-# ---------------------------------------------------------------------------
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -47,7 +46,7 @@ async def lifespan(app: FastAPI):
     seed_if_empty()
     simulator_task = asyncio.create_task(simulator_loop())
     yield
-    core_mod.simulator_running = False
+    sim_mod.simulator_running = False
     if simulator_task:
         simulator_task.cancel()
         try:
@@ -71,10 +70,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 STATIC_DIR = Path(__file__).parent / "static"
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
 
 @app.get("/")
 def root_page():
@@ -83,11 +82,6 @@ def root_page():
         return FileResponse(str(index))
     return {"service": "IBVAP", "docs": "/docs"}
 
-
-
-# ---------------------------------------------------------------------------
-# Routes
-# ---------------------------------------------------------------------------
 
 @app.get("/api/health")
 def health():
@@ -277,5 +271,4 @@ async def ws_alerts(ws: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
