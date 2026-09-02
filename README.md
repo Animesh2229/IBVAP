@@ -4,15 +4,14 @@
 
 > AI assists. Humans decide. Nation secured.
 
-## Demo features (hackathon in-scope)
+## Demo features
 
 | Feature | Description |
 |--------|-------------|
-| **Virtual Fence** | Digital boundary on map; breach raises priority alert |
-| **Behavioral Alert Engine** | Dwell / direction / repeated crossing / multi-camera score |
-| **Tamper-Evident Local Log** | SHA-256 hash-chain audit (offline-first) |
-
-Also includes: live WebSocket alerts, human-in-the-loop review (verify / discard / escalate), sample Indo-Nepal & Indo-Bhutan BOPs, camera compatibility tiers (RTSP / proprietary / analog→IP).
+| **Virtual Fence** | Digital boundary breach alerts |
+| **Behavioral Alert Engine** | Dwell / direction / repeated crossing / multi-cam |
+| **Tamper-Evident Log** | SHA-256 hash-chain audit |
+| **Multi-Country ANPR** | **India + Nepal + Bhutan** plate classify + watchlist |
 
 ## Quick start
 
@@ -22,58 +21,34 @@ pip install -r requirements.txt
 python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-Or from repo root:
-
-```bash
-./start.sh
-```
-
 Open **http://localhost:8000**
 
-- API docs: http://localhost:8000/docs  
-- Health: http://localhost:8000/api/health  
-- Simulate alert: UI button or `POST /api/simulator/trigger`
+### ANPR (India / Nepal / Bhutan)
 
-## Architecture (demo)
+| API | Use |
+|-----|-----|
+| `POST /api/anpr/parse` | `{"text": "KA01AB1234"}` → country IN/NP/BT |
+| `GET /api/anpr/demo?country=NP` | Synthetic Nepal plate |
+| `POST /api/simulator/trigger_anpr?country=BT` | Force Bhutan plate alert |
 
-```
-Existing CCTV (simulated cameras)
-        → Edge simulator (laptop) — detection + behavioral scoring
-        → FastAPI offline-first API — SQLite + SHA-256 hash-chain
-        → Dashboard (Leaflet map, live alerts, audit log)
-```
+Dashboard buttons: **IN Plate / NP Plate / BT Plate**
 
-## Project layout
+Watchlist demo hits: `WB24AB1290` (IN), `BA1PA1234` (NP), `BP1A1234` (BT)
+
+Production path: YOLO plate crop → PaddleOCR (en+hi) → same `classify_plate()`.
+
+## Layout
 
 ```
 backend/
-  main.py           # FastAPI app + routes
-  models_db.py      # Models, SQLite, hash-chain, seed data
-  sim.py            # WebSocket hub + edge alert simulator
-  requirements.txt
-  static/index.html # Ops dashboard
-docs/
-  create_pitch.js   # Optional pitch deck generator
-start.sh
+  main.py          # API + routes
+  models_db.py     # models, SQLite, hash-chain
+  sim.py           # WebSocket + alert simulator
+  anpr.py          # Multi-country plate logic
+  mqtt_sync.py     # Store-and-forward skeleton
+  static/index.html
 ```
 
-## Tech stack
+## One-line
 
-| Layer | Stack |
-|-------|--------|
-| Edge (demo) | Laptop simulator · Deploy: Mini-PC N100 / Jetson / Coral |
-| Video path | RTSP / ONVIF / Analog→IP |
-| AI (production path) | YOLOv8 · ByteTrack · PaddleOCR · watchlist-only face |
-| Backend | FastAPI · SQLite hash-chain · WebSocket |
-| Dashboard | Leaflet · Tailwind · human review |
-
-## Privacy
-
-- No default biometric ID of general civilians  
-- Watchlist-only face match (production design)  
-- Human verification before action  
-- Full audit trail on every review decision  
-
-## One-line (judge)
-
-IBVAP adds an intelligence layer to existing CCTV — detecting, prioritising and verifying suspicious activity with privacy safeguards and tamper-evident auditing — so jawans see more, miss less, and act with confidence.
+IBVAP adds an intelligence layer to existing CCTV — detecting, prioritising and verifying suspicious activity (including cross-border plates from India, Nepal and Bhutan) with privacy safeguards and tamper-evident auditing.
