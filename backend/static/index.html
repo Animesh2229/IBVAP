@@ -8,19 +8,15 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#0b1220;color:#e2e8f0;height:100vh;display:flex;flex-direction:column}
 header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #1e293b;background:#0f172a;gap:8px;flex-wrap:wrap}
-header h1{font-size:15px;font-weight:700;letter-spacing:.02em}
+header h1{font-size:15px;font-weight:700}
 header .sub{font-size:11px;color:#94a3b8}
 .badge{font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid #334155}
 .badge.on{background:#064e3b;color:#6ee7b7;border-color:#059669}
 .badge.off{background:#3f1d1d;color:#fca5a5;border-color:#991b1b}
 button{cursor:pointer;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;color:#fff}
-.btn-cyan{background:#0891b2}.btn-cyan:hover{background:#0e7490}
-.btn-green{background:#047857}.btn-green:hover{background:#065f46}
-.btn-sky{background:#0369a1}.btn-sky:hover{background:#075985}
-.btn-amber{background:#b45309}.btn-amber:hover{background:#92400e}
+.btn-cyan{background:#0891b2}.btn-green{background:#047857}.btn-sky{background:#0369a1}.btn-amber{background:#b45309}
 .btn-sm{padding:4px 8px;font-size:11px;border-radius:6px;background:#1e293b;color:#cbd5e1;border:1px solid #334155}
-.btn-sm.ok{background:#064e3b;color:#6ee7b7}
-.btn-sm.bad{background:#7f1d1d;color:#fca5a5}
+.btn-sm.ok{background:#064e3b;color:#6ee7b7}.btn-sm.bad{background:#7f1d1d;color:#fca5a5}
 .stats{display:flex;gap:12px;padding:8px 16px;border-bottom:1px solid #1e293b;flex-wrap:wrap;font-size:12px;color:#94a3b8;background:#0f172a}
 .stats b{color:#e2e8f0}
 .main{flex:1;display:grid;grid-template-columns:1.2fr 1fr;min-height:0}
@@ -35,15 +31,13 @@ h2{font-size:13px;color:#94a3b8;margin-bottom:10px;text-transform:uppercase;lett
 .alert.high,.alert.critical{border-left-color:#ef4444}
 .alert.medium{border-left-color:#f59e0b}
 .alert.low{border-left-color:#22c55e}
-.alert .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.alert .top{display:flex;justify-content:space-between;gap:8px}
 .alert .title{font-size:13px;font-weight:600}
 .alert .sev{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:#1e293b}
 .alert .desc{font-size:11px;color:#94a3b8;margin-top:4px}
 .alert .row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-size:10px;color:#64748b}
 .tag{padding:2px 6px;border-radius:4px;background:#1e293b;color:#cbd5e1}
-.tag.IN{background:#064e3b;color:#6ee7b7}
-.tag.NP{background:#0c4a6e;color:#7dd3fc}
-.tag.BT{background:#713f12;color:#fde68a}
+.tag.IN{background:#064e3b;color:#6ee7b7}.tag.NP{background:#0c4a6e;color:#7dd3fc}.tag.BT{background:#713f12;color:#fde68a}
 .log{font-family:ui-monospace,monospace;font-size:10px;color:#64748b;padding:6px 0;border-bottom:1px solid #1e293b}
 .err{color:#fca5a5;font-size:12px;padding:8px;background:#450a0a;border-radius:8px;margin-bottom:8px}
 .okmsg{color:#6ee7b7;font-size:12px}
@@ -82,13 +76,10 @@ footer{padding:6px 16px;font-size:10px;color:#475569;border-top:1px solid #1e293
     <div id="alerts"><div class="okmsg">Waiting for data…</div></div>
   </div>
 </div>
-<footer>AI assists · Humans decide · Nation secured · Privacy-by-design · No external CDN (offline-friendly)</footer>
+<footer>AI assists · Humans decide · Nation secured · Privacy-by-design · Offline-friendly</footer>
 <script>
 const API = '';
-const TYPE = {
-  virtual_fence:'Virtual Fence', loitering:'Loitering', direction:'Direction',
-  repeated_crossing:'Repeated Cross', zone_dwell:'Zone Dwell', multi_camera:'Multi-Cam', anpr:'ANPR Plate'
-};
+const TYPE = {virtual_fence:'Virtual Fence',loitering:'Loitering',direction:'Direction',repeated_crossing:'Repeated Cross',zone_dwell:'Zone Dwell',multi_camera:'Multi-Cam',anpr:'ANPR Plate'};
 function $(id){ return document.getElementById(id); }
 async function jget(path){
   const r = await fetch(API + path);
@@ -97,26 +88,30 @@ async function jget(path){
 }
 function setConn(on){
   const el = $('conn');
+  if(!el) return;
   el.textContent = on ? 'Live Edge Feed' : 'Offline';
   el.className = 'badge ' + (on ? 'on' : 'off');
 }
 function renderBops(list){
-  if(!list || !list.length){ $('bops').innerHTML = '<div class="err">No BOPs</div>'; return; }
-  $('bops').innerHTML = list.map(b =>
+  const el = $('bops'); if(!el) return;
+  if(!list || !list.length){ el.innerHTML = '<div class="err">No BOPs</div>'; return; }
+  el.innerHTML = list.map(b =>
     '<div class="bop"><div class="name">'+b.name+'</div><div class="meta">'+
     (b.sector||'')+' · cameras: '+(b.cameras||'—')+
-    ' · '+b.lat.toFixed(3)+', '+b.lng.toFixed(3)+'</div></div>'
+    ' · '+Number(b.lat).toFixed(3)+', '+Number(b.lng).toFixed(3)+'</div></div>'
   ).join('');
 }
 function renderAlerts(rows){
+  const box = $('alerts'); if(!box) return;
+  const oc = $('openCount');
   if(!rows || !rows.length){
-    $('alerts').innerHTML = '<div class="okmsg">No alerts yet — press Simulate Detection</div>';
-    $('openCount').textContent = '';
+    box.innerHTML = '<div class="okmsg">No alerts yet — press Simulate Detection</div>';
+    if(oc) oc.textContent = '';
     return;
   }
   const open = rows.filter(a => a.status === 'open').length;
-  $('openCount').textContent = '('+open+' open)';
-  $('alerts').innerHTML = rows.slice(0,40).map(a => {
+  if(oc) oc.textContent = '('+open+' open)';
+  box.innerHTML = rows.slice(0,40).map(a => {
     const meta = a.metadata || {};
     const plate = meta.plate
       ? '<span class="tag '+(meta.plate_country||'')+'">'+(meta.plate_country_name||meta.plate_country||'')+' '+meta.plate+'</span>'
@@ -133,7 +128,7 @@ function renderAlerts(rows){
       '<span class="tag">'+(a.bop_id||'')+'</span></div>'+
       '<div class="row" style="margin-top:8px">'+btns+'</div></div>';
   }).join('');
-  $('alerts').querySelectorAll('button[data-act]').forEach(btn => {
+  box.querySelectorAll('button[data-act]').forEach(btn => {
     btn.onclick = async () => {
       try {
         await fetch(API+'/api/alerts/'+btn.dataset.id+'/review', {
@@ -148,10 +143,13 @@ function renderAlerts(rows){
 }
 function renderAudit(data){
   const valid = data && data.chain_valid;
-  $('auditStat').textContent = valid ? 'Valid' : 'CHECK';
+  const st = $('auditStat');
+  if (st) st.textContent = valid ? 'Valid' : 'CHECK';
+  const box = $('audit');
+  if (!box) return;
   const entries = (data && data.entries) || [];
-  if(!entries.length){ $('audit').innerHTML = '<div class="log">No entries</div>'; return; }
-  $('audit').innerHTML = entries.slice(0,15).map(e =>
+  if(!entries.length){ box.innerHTML = '<div class="log">No entries</div>'; return; }
+  box.innerHTML = entries.slice(0,15).map(e =>
     '<div class="log">#'+e.id+' · '+e.event_type+' · '+(e.hash||'').slice(0,16)+'…</div>'
   ).join('');
 }
@@ -166,17 +164,21 @@ async function loadAll(){
     ]);
     renderBops(bops);
     renderAlerts(alerts);
-    renderAudit(audit);
     if(stats){
-      $('stats').innerHTML =
-        '<span>CAMERAS <b>'+stats.cameras_online+'/'+stats.cameras_total+'</b></span>'+
-        '<span>BOPS <b>'+stats.bops_covered+'</b></span>'+
-        '<span>OPEN <b>'+stats.open_alerts+'</b></span>'+
-        '<span>AUDIT <b>'+(stats.audit_chain_valid?'Valid':'CHECK')+'</b></span>';
+      const statsEl = $('stats');
+      if (statsEl) {
+        statsEl.innerHTML =
+          '<span>CAMERAS <b>'+stats.cameras_online+'/'+stats.cameras_total+'</b></span>'+
+          '<span>BOPS <b>'+stats.bops_covered+'</b></span>'+
+          '<span>OPEN <b>'+stats.open_alerts+'</b></span>'+
+          '<span>AUDIT <b id="auditStat">'+(stats.audit_chain_valid?'Valid':'CHECK')+'</b></span>';
+      }
     }
+    renderAudit(audit);
   } catch(e){
     console.error(e);
-    $('alerts').innerHTML = '<div class="err">API error: '+e.message+'. Is uvicorn running?</div>';
+    const box = $('alerts');
+    if(box) box.innerHTML = '<div class="err">API error: '+e.message+'. Is uvicorn running?</div>';
   }
 }
 function connectWS(){
