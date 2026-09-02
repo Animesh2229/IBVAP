@@ -35,6 +35,7 @@ from sim import (
     manager,
     simulator_loop,
 )
+from anpr import parse_ocr_text, random_demo_plate, DEFAULT_WATCHLIST, classify_plate
 
 simulator_task = None
 
@@ -249,6 +250,72 @@ async def trigger_alert():
         raise HTTPException(500, "No cameras available")
     await manager.broadcast({"event": "alert", "data": a.model_dump()})
     return a
+
+
+@app.post("/api/anpr/parse")
+def anpr_parse(body: dict):
+    text = (body or {}).get("text", "")
+    watchlist = (body or {}).get("watchlist") or DEFAULT_WATCHLIST
+    return parse_ocr_text(text, watchlist).to_dict()
+
+
+@app.get("/api/anpr/demo")
+def anpr_demo(country: str = None):
+    if country:
+        country = country.upper()
+        if country not in ("IN", "NP", "BT"):
+            raise HTTPException(400, "country must be IN, NP, or BT")
+    plate = random_demo_plate(country)
+    return parse_ocr_text(plate.raw_text, DEFAULT_WATCHLIST).to_dict()
+
+
+@app.post("/api/simulator/trigger_anpr")
+async def trigger_anpr(country: str = None):
+    from models_db import AlertType, AlertSeverity
+    import uuid as _uuid
+
+    cams = [c for c in list_cameras() if c["status"] != "offline"]
+    if not cams:
+        raise HTTPException(500, "No cameras")
+    cam = cams[0]
+    if country:
+        country = country.upper()
+        if country not in ("IN", "NP", "BT"):
+            raise HTTPException(400, "country must be IN, NP, or BT")
+    plate = parse_ocr_text(random_demo_plate(country).raw_text, DEFAULT_WATCHLIST)
+    cname = {"IN": "India", "NP": "Nepal", "BT": "Bhutan"}.get(plate.country, "Unknown")
+    sev = AlertSeverity.CRITICAL if plate.watchlist_hit else AlertSeverity.HIGH
+    title = f"ANPR WATCHLIST – {cname} {plate.normalized}" if plate.watchlist_hit else f"ANPR – {cname} Plate"
+    desc = (
+        f"Watchlist hit: {plate.normalized} ({cname})."
+        if plate.watchlist_hit
+        else f"Plate {plate.normalized} classified as {cname} ({plate.country})."
+    )
+    alert = Alert(
+        id=str(_uuid.uuid4()),
+        type=AlertType.ANPR,
+        severity=sev,
+        title=title,
+        description=desc,
+        camera_id=cam["id"],
+        bop_id=cam["bop_id"],
+        score=round(plate.confidence, 3),
+        timestamp=datetime.now(timezone.utc).isoformat(),
+        lat=cam["lat"],
+        lng=cam["lng"],
+        metadata={
+            "anpr": plate.to_dict(),
+            "plate": plate.normalized,
+            "plate_country": plate.country,
+            "plate_country_name": cname,
+            "model": "ANPR-MultiCountry (IN/NP/BT) (sim)",
+            "offline": True,
+        },
+    )
+    from sim import save_alert
+    save_alert(alert)
+    await manager.broadcast({"event": "alert", "data": alert.model_dump()})
+    return alert
 
 
 @app.websocket("/ws/alerts")
