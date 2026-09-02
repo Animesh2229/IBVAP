@@ -1,54 +1,61 @@
 # IBVAP – Intelligent Border Video Analytics Platform
 
-**Force multiplier for Sashastra Seema Bal (SSB)** — AI intelligence layer on existing CCTV.
+**Force multiplier for Sashastra Seema Bal (SSB)**  
+Offline-first AI layer on existing CCTV · Privacy-by-design · Tamper-evident audit
 
 > AI assists. Humans decide. Nation secured.
 
-## Demo features
+## Features (demo-ready)
 
-| Feature | Description |
-|--------|-------------|
-| **Virtual Fence** | Digital boundary breach alerts |
-| **Behavioral Alert Engine** | Dwell / direction / repeated crossing / multi-cam |
-| **Tamper-Evident Log** | SHA-256 hash-chain audit |
-| **Multi-Country ANPR** | **India + Nepal + Bhutan** plate classify + watchlist |
+| Feature | Status |
+|--------|--------|
+| Virtual Fence / behavioral alerts | Simulator |
+| Multi-country **ANPR (India + Nepal + Bhutan)** | Yes |
+| SHA-256 hash-chain audit + human review | Yes |
+| Offline dashboard (no CDN – college WiFi safe) | Yes |
+| WebSocket live alerts | Yes |
+| MQTT store-and-forward | Skeleton |
+| Real RTSP / YOLO worker | Skeleton (`camera_worker.py`) |
 
-## Quick start
+## Quick start (Windows)
 
-```bash
-cd backend
-pip install -r requirements.txt
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
-```
+1. Open folder `backend`
+2. Double-click **`start.bat`**  
+   **or** in CMD:
+   ```bat
+   cd backend
+   python -m pip install fastapi "uvicorn[standard]" pydantic
+   python -m uvicorn main:app --host 127.0.0.1 --port 8000
+   ```
+3. Browser: **http://127.0.0.1:8000**
+4. Click **Simulate Detection** / **IN · NP · BT Plate**
 
-Open **http://localhost:8000**
-
-### ANPR (India / Nepal / Bhutan)
-
-| API | Use |
-|-----|-----|
-| `POST /api/anpr/parse` | `{"text": "KA01AB1234"}` → country IN/NP/BT |
-| `GET /api/anpr/demo?country=NP` | Synthetic Nepal plate |
-| `POST /api/simulator/trigger_anpr?country=BT` | Force Bhutan plate alert |
-
-Dashboard buttons: **IN Plate / NP Plate / BT Plate**
-
-Watchlist demo hits: `WB24AB1290` (IN), `BA1PA1234` (NP), `BP1A1234` (BT)
-
-Production path: YOLO plate crop → PaddleOCR (en+hi) → same `classify_plate()`.
-
-## Layout
+## Project layout
 
 ```
 backend/
-  main.py          # API + routes
-  models_db.py     # models, SQLite, hash-chain
-  sim.py           # WebSocket + alert simulator
-  anpr.py          # Multi-country plate logic
-  mqtt_sync.py     # Store-and-forward skeleton
-  static/index.html
+  main.py           # FastAPI + routes + WebSocket
+  models_db.py      # SQLite models + hash-chain
+  sim.py            # Alert simulator (demo edge)
+  anpr.py           # IN / NP / BT plate classify
+  mqtt_sync.py      # HQ sync skeleton
+  camera_worker.py  # Real camera path (stub)
+  start.bat         # Windows one-click start
+  static/index.html # Offline-friendly dashboard
 ```
 
-## One-line
+## Real camera later
 
-IBVAP adds an intelligence layer to existing CCTV — detecting, prioritising and verifying suspicious activity (including cross-border plates from India, Nepal and Bhutan) with privacy safeguards and tamper-evident auditing.
+```
+1. VLC me RTSP test
+2. pip install opencv-python-headless ultralytics
+3. set IBVAP_SIMULATOR=0
+4. python camera_worker.py
+5. Wire YOLO → same save_alert() as simulator
+```
+
+ANPR production: plate crop → PaddleOCR → `anpr.parse_ocr_text()`.
+
+## Note
+
+Dashboard uses **BOP list mode** (no Leaflet CDN) for restricted networks.
